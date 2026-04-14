@@ -151,7 +151,23 @@ body {
 .card-tag.orange { background: var(--orange-50); color: var(--orange-700); }
 
 /* ─── Chart wrappers ─── */
-.chart-wrap { position: relative; }
+.chart-wrap { position: relative; height: 280px; width: 100%; }
+.chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+/* HTML fallback bars — used instead of broken Chart.js bar charts */
+.html-bars { display:flex; align-items:flex-end; gap:6px; height:210px; padding:18px 6px 0; border-bottom:1px solid rgba(0,0,0,0.08); position:relative; margin-bottom:70px; }
+.html-bars .bar { flex:1; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:0; height:100%; }
+.html-bars .bar-fill { width:78%; background:#1C7A38; border-radius:5px 5px 0 0; transition:all .3s; position:relative; min-height:2px; }
+.html-bars .bar-fill:hover { background:#25A04A; }
+.html-bars .bar-label { font-size:10px; color:#4a5548; white-space:nowrap; position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%) rotate(-40deg); transform-origin:right top; text-align:right; }
+.html-bars .bar-val { position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:10px; color:#145528; font-weight:600; opacity:0; transition:opacity .2s; white-space:nowrap; }
+.html-bars .bar:hover .bar-val { opacity:1; }
+.html-bars-h { display:flex; flex-direction:column; gap:4px; padding:8px 4px; }
+.html-bars-h .row { display:flex; align-items:center; gap:8px; font-size:10.5px; }
+.html-bars-h .row-label { width:90px; text-align:right; color:#4a5548; flex-shrink:0; }
+.html-bars-h .row-bar { flex:1; height:14px; background:rgba(20,85,40,0.08); border-radius:4px; position:relative; }
+.html-bars-h .row-fill { height:100%; border-radius:4px; transition:width .5s; min-width:2px; }
+.html-bars-h .row-val { width:42px; font-size:10.5px; color:#145528; font-weight:600; }
 
 /* ─── Product Table ─── */
 .prod-table { width: 100%; border-collapse: collapse; }
@@ -318,7 +334,7 @@ body {
         <span class="card-tag" id="vol-tag">All Departments</span>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartVolume" height="280"></canvas></div>
+        <div class="html-bars" id="htmlVolume"></div>
       </div>
     </div>
     <div class="card">
@@ -345,7 +361,7 @@ body {
         </div>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartReorder" height="260"></canvas></div>
+        <div class="html-bars-h" id="htmlReorder"></div>
       </div>
     </div>
     <div class="card">
@@ -356,7 +372,7 @@ body {
         </div>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartDOW" height="260"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartDOW"></canvas></div>
         <div class="insight">
           <span class="insight-icon">💡</span>
           <span class="insight-text"><strong>Weekend surge:</strong> Sat has 60% more volume than midweek. Sunday reorder rate peaks at <strong>60.6%</strong> — loyal customers buying staples.</span>
@@ -371,7 +387,7 @@ body {
         </div>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartHour" height="260"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartHour"></canvas></div>
         <div class="insight green">
           <span class="insight-icon">💡</span>
           <span class="insight-text"><strong>Early birds are loyalists:</strong> Orders at <strong>5–9 AM</strong> have the highest reorder rates (63–65%).</span>
@@ -390,7 +406,7 @@ body {
         </div>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartCycle" height="220"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartCycle"></canvas></div>
         <div class="cycle-tags">
           <div class="cycle-tag" style="background:#FEF3E8;color:#C4600A"><span class="dot" style="background:#F28B30"></span>7-day weekly cycle: 33,837 orders</div>
           <div class="cycle-tag" style="background:#EBF7EF;color:#145528"><span class="dot" style="background:#25A04A"></span>14-day bi-weekly: 10,485 orders</div>
@@ -593,54 +609,36 @@ function animateCounter(el, target, suffix='', decimals=0, duration=1200){
 let charts = {};
 
 function makeVolume(){
-  const sortedAll = [...D.depts].sort((a,b)=>b.items - a.items);
+  const sorted = [...D.depts].sort((a,b)=>b.items - a.items);
   const active = selectedDepts.size === 0;
-  const labels = sortedAll.map(d => cap(d.d));
-  const data   = sortedAll.map(d => d.items);
-  const colors = sortedAll.map(d => {
-    if(active) return G2;
-    return selectedDepts.has(d.d) ? O : 'rgba(20,122,56,0.18)';
-  });
-  if(charts.vol){
-    charts.vol.data.datasets[0].backgroundColor = colors;
-    charts.vol.update('active');
-    return;
-  }
-  charts.vol = new Chart(document.getElementById('chartVolume'), {
-    type:'bar',
-    data:{ labels, datasets:[{data, backgroundColor:colors, borderRadius:5, borderSkipped:false, maxBarThickness:32}]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ y:{ticks:{callback:v=>fmt(v)}}, x:{ticks:{font:{size:10}}} },
-      plugins:{tooltip:{callbacks:{label:ctx=>fmtFull(ctx.raw)+' items'}}}
-    }
-  });
+  const maxV = sorted[0].items;
+  const host = document.getElementById('htmlVolume');
+  host.innerHTML = sorted.map(d=>{
+    const h = (d.items / maxV) * 100;
+    const color = active ? G2 : (selectedDepts.has(d.d) ? O : 'rgba(20,122,56,0.22)');
+    return `<div class="bar" title="${cap(d.d)}: ${fmtFull(d.items)} items">
+      <span class="bar-val">${fmt(d.items)}</span>
+      <div class="bar-fill" style="height:${h}%; background:${color}"></div>
+      <span class="bar-label">${cap(d.d)}</span>
+    </div>`;
+  }).join('');
 }
 
 function makeReorder(){
   const sorted = [...D.depts].sort((a,b)=>b.rr - a.rr);
   const active = selectedDepts.size === 0;
-  const bgColors = sorted.map(d=>{
-    if(active) return d.rr >= 60 ? G : d.rr >= 50 ? G3 : d.rr >= 40 ? O : '#E07212';
-    return selectedDepts.has(d.d) ? O : 'rgba(20,85,40,0.15)';
-  });
-  if(charts.rr){
-    charts.rr.data.datasets[0].backgroundColor = bgColors;
-    charts.rr.update('active');
-    return;
-  }
-  charts.rr = new Chart(document.getElementById('chartReorder'),{
-    type:'bar',
-    data:{
-      labels: sorted.map(d=>cap(d.d)),
-      datasets:[{data:sorted.map(d=>d.rr), backgroundColor:bgColors, borderRadius:4, borderSkipped:false, maxBarThickness:18}]
-    },
-    options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      scales:{ x:{min:0,max:80,ticks:{callback:v=>v+'%'}}, y:{ticks:{font:{size:10.5}}} },
-      plugins:{tooltip:{callbacks:{label:ctx=>ctx.raw+'% reorder rate'}}}
-    }
-  });
+  const host = document.getElementById('htmlReorder');
+  host.innerHTML = sorted.map(d=>{
+    const w = (d.rr / 80) * 100;
+    const color = active
+      ? (d.rr >= 60 ? G : d.rr >= 50 ? G3 : d.rr >= 40 ? O : '#E07212')
+      : (selectedDepts.has(d.d) ? O : 'rgba(20,85,40,0.25)');
+    return `<div class="row">
+      <span class="row-label">${cap(d.d)}</span>
+      <div class="row-bar"><div class="row-fill" style="width:${w}%; background:${color}"></div></div>
+      <span class="row-val">${d.rr}%</span>
+    </div>`;
+  }).join('');
 }
 
 function makeDOW(){
@@ -650,7 +648,7 @@ function makeDOW(){
     data:{
       labels:D.dow.map(d=>d.day),
       datasets:[
-        {label:'Items',data:D.dow.map(d=>d.items), backgroundColor:G, borderRadius:5, borderSkipped:false, yAxisID:'y', maxBarThickness:38},
+        {label:'Items',data:D.dow.map(d=>d.items), backgroundColor:G, borderRadius:5, yAxisID:'y', maxBarThickness:38},
         {label:'Reorder%',data:D.dow.map(d=>d.rr), type:'line', borderColor:O, backgroundColor:O,
          pointRadius:5, pointBackgroundColor:O, borderWidth:2.5, yAxisID:'y1', tension:0.3}
       ]
@@ -674,7 +672,7 @@ function makeHour(){
       labels: D.hours.map(h=>h.h%6===0?h.h+':00':''),
       datasets:[
         {data:D.hours.map(h=>h.i), backgroundColor:D.hours.map(h=>h.h>=8&&h.h<=16?G:GL),
-         borderRadius:3, borderSkipped:false, maxBarThickness:24, yAxisID:'y'},
+         borderRadius:3, maxBarThickness:24, yAxisID:'y'},
         {data:D.hours.map(h=>h.rr), type:'line', borderColor:O, backgroundColor:'transparent',
          pointRadius:2, borderWidth:2, yAxisID:'y1', tension:0.4}
       ]
