@@ -1,0 +1,21 @@
+order_hour,time_period,total_items,reorder_rate_pct
+0,Night,1922,53.0
+1,Night,1105,63.7
+3,Night,540,53.5
+4,Night,587,61.7
+5,Early Morning,918,64.9
+6,Early Morning,3016,60.1
+7,Early Morning,8334,63.2
+8,Early Morning,17487,63.6
+9,Late Morning,24355,63.3
+10,Late Morning,26698,60.6
+11,Late Morning,26469,57.9
+12,Late Morning,26280,58.4
+13,Afternoon,26499,59.3
+14,Afternoon,27534,58.2
+15,Afternoon,25789,58.1
+16,Afternoon,25264,59.2
+17,Afternoon,21558,58.1
+18,Evening,16353,56.3
+19,Evening,12091,57.3
+20,Evening,9830,55.5

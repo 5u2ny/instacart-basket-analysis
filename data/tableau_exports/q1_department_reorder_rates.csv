@@ -1,0 +1,8 @@
+department,total_items_ordered,total_reorders,reorder_rate_pct,unique_products
+dairy eggs,175199,117264,66.9,2905
+produce,306252,199539,65.2,1445
+beverages,87114,56714,65.1,3294
+bakery,38176,24220,63.4,1215
+pets,3306,2071,62.6,670
+deli,34100,20630,60.5,1074
+babies,13775,8021,58.2,810

@@ -1,0 +1,8 @@
+day_of_week,day_order,total_items,reorder_rate_pct
+Saturday,0,61183,58.7
+Sunday,1,55447,60.6
+Monday,2,41711,59.0
+Tuesday,3,38540,58.6
+Wednesday,4,38179,59.4
+Thursday,5,41070,60.2
+Friday,6,44411,57.4

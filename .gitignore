@@ -1,0 +1,21 @@
+# Large raw data files (download from Kaggle: instacart-market-basket-analysis)
+orders.csv
+orders_clean.csv
+order_products.csv
+products.csv
+products_clean.csv
+
+# Tableau packaged workbooks & backups
+*.twbx
+*.tde
+*.hyper
+*.tdsx
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

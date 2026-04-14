@@ -1,0 +1,16 @@
+product_name,department,total_orders,reorder_rate_pct,avg_cart_position
+Banana,produce,15450,84.3,4.9
+Bag of Organic Bananas,produce,12409,83.0,5.1
+Organic Strawberries,produce,8528,77.4,7.2
+Organic Baby Spinach,produce,7852,77.6,7.4
+Organic Hass Avocado,produce,6857,79.3,6.8
+Organic Avocado,produce,5646,77.0,6.3
+Large Lemon,produce,4928,70.1,8.0
+Strawberries,produce,4587,69.9,7.2
+Limes,produce,4526,68.2,8.5
+Organic Raspberries,produce,4420,76.0,7.2
+Organic Whole Milk,dairy eggs,4362,82.9,5.4
+Organic Yellow Onion,produce,3607,68.9,8.5
+Organic Garlic,produce,3547,67.7,8.9
+Organic Zucchini,produce,3424,68.9,9.1
+Organic Blueberries,produce,3256,62.7,8.1
