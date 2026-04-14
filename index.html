@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instacart — Restocking Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: #F5EFE4;
+  color: #1A1A1A;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ─── CSS Variables ─── */
+:root {
+  --green-950: #071F11;
+  --green-900: #0A3018;
+  --green-800: #0D4020;
+  --green-700: #145528;
+  --green-600: #1C7A38;
+  --green-500: #25A04A;
+  --green-400: #4DC470;
+  --green-200: #A8DEBA;
+  --green-100: #D0EDD9;
+  --green-50:  #EBF7EF;
+  --orange-700: #C4600A;
+  --orange-600: #E07212;
+  --orange-500: #F28B30;
+  --orange-400: #F5A45A;
+  --orange-100: #FCDFC4;
+  --orange-50:  #FEF3E8;
+  --cream:      #F5EFE4;
+  --cream-2:    #EDE5D7;
+  --cream-3:    #E2D8C8;
+  --white:      #FFFFFF;
+  --text-primary: #0D1B0F;
+  --text-secondary: #3D5244;
+  --text-muted: #7A9283;
+  --border: #DDD4C4;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 3px 6px rgba(0,0,0,0.05);
+  --r: 12px;
+  --r-sm: 8px;
+}
+
+/* ─── Page ─── */
+.page { max-width: 1400px; margin: 0 auto; padding: 36px 32px 64px; }
+.page-hero { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
+.page-hero h1 { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.6px; }
+.page-hero h1 span { color: var(--green-700); }
+.page-hero p { font-size: 13.5px; color: var(--text-muted); margin-top: 5px; font-style: italic; }
+.hero-badge { display: flex; align-items: center; gap: 8px; background: var(--green-900); color: #fff; padding: 8px 16px; border-radius: 22px; font-size: 12.5px; font-weight: 600; }
+.hero-dot { width: 8px; height: 8px; background: #4DC470; border-radius: 50%; box-shadow: 0 0 0 3px rgba(77,196,112,0.3); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(77,196,112,0.3)} 50%{box-shadow:0 0 0 6px rgba(77,196,112,0.1)} }
+
+/* ─── Section label ─── */
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--text-muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ─── KPI Row ─── */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+.kpi {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px 22px; position: relative; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.kpi.green::before  { background: linear-gradient(90deg, var(--green-600), var(--green-400)); }
+.kpi.orange::before { background: linear-gradient(90deg, var(--orange-600), var(--orange-400)); }
+.kpi-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-icon { font-size: 20px; opacity: 0.7; }
+.kpi-value {
+  font-size: 32px; font-weight: 800; color: var(--text-primary);
+  letter-spacing: -1.5px; margin: 10px 0 6px; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-sub { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.badge-up   { background: var(--green-50); color: var(--green-700); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+.badge-down { background: var(--orange-50); color: var(--orange-700); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+
+/* ─── Filter Bar ─── */
+.filter-section { margin-bottom: 28px; }
+.filter-bar {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.filter-label { font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.filter-pills { display: flex; flex-wrap: wrap; gap: 7px; flex: 1; }
+.pill {
+  padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 500;
+  border: 1.5px solid var(--border); background: var(--cream);
+  color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+  font-family: inherit; white-space: nowrap;
+}
+.pill:hover { border-color: var(--green-500); color: var(--green-700); background: var(--green-50); }
+.pill.active { background: var(--green-800); color: #fff; border-color: var(--green-800); box-shadow: 0 2px 6px rgba(13,64,32,0.25); }
+.pill.all.active { background: var(--green-900); }
+.filter-reset {
+  font-size: 12px; color: var(--orange-600); font-weight: 600; cursor: pointer;
+  border: none; background: none; font-family: inherit; padding: 4px 8px;
+  border-radius: 5px; transition: background 0.12s; white-space: nowrap;
+}
+.filter-reset:hover { background: var(--orange-50); }
+.filter-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+/* ─── Main Grid ─── */
+.main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 18px; }
+.main-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.main-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.span-full { grid-column: 1 / -1; }
+
+/* ─── Card ─── */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r); box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: var(--shadow-md); }
+.card-head {
+  padding: 18px 22px 0;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.card-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.card-body { padding: 14px 22px 20px; }
+.card-tag {
+  font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+  background: var(--green-50); color: var(--green-700); white-space: nowrap;
+}
+.card-tag.orange { background: var(--orange-50); color: var(--orange-700); }
+
+/* ─── Chart wrappers ─── */
+.chart-wrap { position: relative; }
+
+/* ─── Product Table ─── */
+.prod-table { width: 100%; border-collapse: collapse; }
+.prod-table th {
+  font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 8px 0; border-bottom: 1px solid var(--cream-2);
+  text-align: left;
+}
+.prod-table td {
+  padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--cream-2);
+  vertical-align: middle;
+}
+.prod-table tr:last-child td { border-bottom: none; }
+.prod-table .rank {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; margin-right: 8px; flex-shrink: 0;
+}
+.prod-table .name-cell { display: flex; align-items: center; }
+.prod-table .pname { font-weight: 600; color: var(--text-primary); font-size: 13px; }
+.prod-table .pdept { font-size: 11px; color: var(--text-muted); }
+.rbar { display: flex; align-items: center; gap: 8px; }
+.rbar-track { flex: 1; height: 6px; background: var(--cream-2); border-radius: 3px; overflow: hidden; min-width: 60px; }
+.rbar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.rbar-val { font-size: 12px; font-weight: 700; min-width: 38px; text-align: right; }
+
+/* ─── Insight box ─── */
+.insight {
+  display: flex; gap: 10px; padding: 12px 16px; border-radius: 8px; margin-top: 14px;
+  border: 1px solid var(--orange-100); background: var(--orange-50);
+}
+.insight-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.insight-text { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+.insight-text strong { color: var(--green-900); }
+.insight.green { background: var(--green-50); border-color: var(--green-100); }
+.insight.green .insight-text { color: var(--text-secondary); }
+
+/* ─── Heatmap ─── */
+.hm-wrap { overflow-x: auto; }
+.hm-table { width: 100%; border-collapse: separate; border-spacing: 3px; min-width: 560px; }
+.hm-table th {
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.4px; padding: 5px 4px; text-align: center; white-space: nowrap;
+}
+.hm-table th:first-child { text-align: left; min-width: 120px; }
+.hm-table td {
+  text-align: center; font-size: 11.5px; font-weight: 700; padding: 9px 4px;
+  border-radius: 6px; cursor: default; transition: transform 0.12s, box-shadow 0.12s;
+}
+.hm-table td:hover { transform: scale(1.08); box-shadow: var(--shadow-md); z-index: 1; position: relative; }
+.hm-table td:first-child {
+  text-align: left; background: transparent !important;
+  font-size: 12px; font-weight: 600; color: var(--text-secondary); padding-left: 0;
+  cursor: default; transform: none !important; box-shadow: none !important;
+}
+
+/* ─── Top-product sparkline list ─── */
+.top-list { list-style: none; }
+.top-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--cream-2);
+  transition: background 0.12s;
+}
+.top-item:last-child { border-bottom: none; }
+.top-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0;
+  background: var(--green-900); color: #fff;
+}
+.top-num.hi { background: var(--orange-500); }
+.top-info { flex: 1; min-width: 0; }
+.top-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.top-rate { text-align: right; font-size: 16px; font-weight: 800; color: var(--green-700); white-space: nowrap; }
+
+/* ─── Cycle tag ─── */
+.cycle-tags { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.cycle-tag {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; gap: 5px;
+}
+.cycle-tag .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ─── Transitions ─── */
+.fade-in { animation: fadeIn 0.4s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+
+/* ─── Responsive ─── */
+@media (max-width: 1100px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .main-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .page { padding: 16px; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .main-grid-3, .main-grid-2 { grid-template-columns: 1fr; }
+  .nav { padding: 0 16px; }
+  .nav-question { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE ══ -->
+<div class="page">
+
+  <!-- ── Hero Header ── -->
+  <div class="page-hero">
+    <div>
+      <h1>Instacart <span>Restocking Intelligence</span></h1>
+      <p>Which products &amp; departments show strong, repeatable demand patterns that should guide smarter restocking?</p>
+    </div>
+    <div class="hero-badge"><div class="hero-dot"></div> Team 1 · 1M+ Orders</div>
+  </div>
+
+  <!-- ── KPIs ── -->
+  <div class="section-label">Key Metrics</div>
+  <div class="kpi-row">
+    <div class="kpi green fade-in">
+      <div class="kpi-top"><span class="kpi-label">Total Orders</span><span class="kpi-icon">📦</span></div>
+      <div class="kpi-value" id="kv-orders">0</div>
+      <div class="kpi-sub">Across all users &amp; periods</div>
+    </div>
+    <div class="kpi orange fade-in stagger-1">
+      <div class="kpi-top"><span class="kpi-label">Unique Products</span><span class="kpi-icon">🍎</span></div>
+      <div class="kpi-value" id="kv-products">0</div>
+      <div class="kpi-sub">Ordered at least once</div>
+    </div>
+    <div class="kpi green fade-in stagger-2">
+      <div class="kpi-top"><span class="kpi-label">Reorder Rate</span><span class="kpi-icon">🔄</span></div>
+      <div class="kpi-value" id="kv-reorder">0%</div>
+      <div class="kpi-sub"><span class="badge-up">▲ Strong signal</span></div>
+    </div>
+    <div class="kpi orange fade-in stagger-3">
+      <div class="kpi-top"><span class="kpi-label">Departments</span><span class="kpi-icon">🏪</span></div>
+      <div class="kpi-value" id="kv-depts">0</div>
+      <div class="kpi-sub">Active product categories</div>
+    </div>
+  </div>
+
+  <!-- ── Department Filter ── -->
+  <div class="filter-section fade-in">
+    <div class="section-label">Department Filter <span id="filter-status" style="font-size:11px;color:var(--orange-600);font-weight:600;letter-spacing:0;text-transform:none;"></span></div>
+    <div class="filter-bar">
+      <span class="filter-label">Filter by dept:</span>
+      <div class="filter-pills" id="filterPills"></div>
+      <button class="filter-reset" onclick="resetFilter()">✕ Clear</button>
+    </div>
+  </div>
+
+  <!-- ── Row 1: Volume Bar + Top Products ── -->
+  <div class="main-grid fade-in">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Department Demand Volume</div>
+          <div class="card-sub">Total items ordered — filtered departments highlighted</div>
+        </div>
+        <span class="card-tag" id="vol-tag">All Departments</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chartVolume" height="280"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Top Reordered Products</div>
+          <div class="card-sub" id="top-sub">Highest repeat-purchase rate overall</div>
+        </div>
+        <span class="card-tag orange" id="top-tag">Top 8</span>
+      </div>
+      <div class="card-body">
+        <ul class="top-list" id="topList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 2: Reorder Rate + Weekly + Hourly ── -->
+  <div class="main-grid-3 fade-in">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Dept Reorder Rates</div>
+          <div class="card-sub">Higher = stronger loyalty signal</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chartReorder" height="260"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Weekly Demand Pattern</div>
+          <div class="card-sub">Volume &amp; reorder rate by day</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chartDOW" height="260"></canvas></div>
+        <div class="insight">
+          <span class="insight-icon">💡</span>
+          <span class="insight-text"><strong>Weekend surge:</strong> Sat has 60% more volume than midweek. Sunday reorder rate peaks at <strong>60.6%</strong> — loyal customers buying staples.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Hourly Order Pattern</div>
+          <div class="card-sub">Volume peaks 9 AM–3 PM</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chartHour" height="260"></canvas></div>
+        <div class="insight green">
+          <span class="insight-icon">💡</span>
+          <span class="insight-text"><strong>Early birds are loyalists:</strong> Orders at <strong>5–9 AM</strong> have the highest reorder rates (63–65%).</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 3: Reorder Cycle + Product Table ── -->
+  <div class="main-grid fade-in">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Reorder Cycle Distribution</div>
+          <div class="card-sub">Days between consecutive orders — reveals restocking rhythm</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chartCycle" height="220"></canvas></div>
+        <div class="cycle-tags">
+          <div class="cycle-tag" style="background:#FEF3E8;color:#C4600A"><span class="dot" style="background:#F28B30"></span>7-day weekly cycle: 33,837 orders</div>
+          <div class="cycle-tag" style="background:#EBF7EF;color:#145528"><span class="dot" style="background:#25A04A"></span>14-day bi-weekly: 10,485 orders</div>
+          <div class="cycle-tag" style="background:#FEF3E8;color:#C4600A"><span class="dot" style="background:#E07212"></span>30-day monthly: 28,926 orders</div>
+        </div>
+        <div class="insight" style="margin-top:12px">
+          <span class="insight-icon">💡</span>
+          <span class="insight-text"><strong>Three restocking rhythms:</strong> Plan inventory around <strong>7-day</strong> (weekly groceries), <strong>14-day</strong> (bi-weekly top-ups) and <strong>30-day</strong> (monthly bulk) cycles.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title" id="prod-table-title">Top Products by Department</div>
+          <div class="card-sub" id="prod-table-sub">Select a department filter above to drill in</div>
+        </div>
+        <span class="card-tag" id="prod-table-tag">Produce</span>
+      </div>
+      <div class="card-body">
+        <table class="prod-table">
+          <thead>
+            <tr>
+              <th style="width:45%">Product</th>
+              <th style="width:13%">Orders</th>
+              <th style="width:32%">Reorder Rate</th>
+              <th style="width:10%">Cart#</th>
+            </tr>
+          </thead>
+          <tbody id="prodTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 4: Heatmap full width ── -->
+  <div class="fade-in">
+    <div class="section-label">Reorder Pattern Heatmap</div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Department × Day of Week Reorder Rates</div>
+          <div class="card-sub">Hover any cell — darker green = stronger repeat demand that day</div>
+        </div>
+        <span class="card-tag">Hover to explore</span>
+      </div>
+      <div class="card-body">
+        <div class="hm-wrap"><table class="hm-table" id="heatmap"></table></div>
+        <div class="insight green" style="margin-top:16px">
+          <span class="insight-icon">💡</span>
+          <span class="insight-text"><strong>Most predictable:</strong> Dairy Eggs and Produce hold 65–69% reorder rates every single day — safest departments to automate restocking. <strong>Pantry and Personal Care</strong> are exploration-heavy (32–36%) — customers browse, not repeat-buy.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+/* ══════════ DATA ══════════ */
+const D = {
+  depts: [
+    {d:"produce",       items:306252, rr:65.2, orders:77936, uq:1445, cp:8.0},
+    {d:"dairy eggs",    items:175199, rr:66.9, orders:70481, uq:2905, cp:7.5},
+    {d:"beverages",     items:87114,  rr:65.1, orders:47226, uq:3294, cp:7.0},
+    {d:"snacks",        items:93703,  rr:57.6, orders:45173, uq:4688, cp:9.2},
+    {d:"frozen",        items:72198,  rr:53.9, orders:38129, uq:3161, cp:9.0},
+    {d:"pantry",        items:60166,  rr:34.7, orders:36054, uq:3721, cp:9.5},
+    {d:"bakery",        items:38176,  rr:63.4, orders:28485, uq:1215, cp:8.1},
+    {d:"deli",          items:34100,  rr:60.5, orders:24925, uq:1074, cp:8.7},
+    {d:"canned goods",  items:34456,  rr:46.1, orders:21978, uq:1575, cp:9.9},
+    {d:"dry goods pasta",items:27657, rr:46.2, orders:19171, uq:1375, cp:10.2},
+    {d:"meat seafood",  items:22958,  rr:56.5, orders:18617, uq:697,  cp:8.5},
+    {d:"breakfast",     items:23007,  rr:56.0, orders:17037, uq:912,  cp:9.1},
+    {d:"household",     items:23745,  rr:40.8, orders:15257, uq:2049, cp:8.4},
+    {d:"personal care", items:14577,  rr:32.3, orders:10479, uq:3609, cp:8.7},
+    {d:"babies",        items:13775,  rr:58.2, orders:5727,  uq:810,  cp:10.8},
+    {d:"international", items:8778,   rr:36.1, orders:7196,  uq:781,  cp:10.1},
+    {d:"alcohol",       items:4856,   rr:56.8, orders:2676,  uq:615,  cp:5.4},
+    {d:"pets",          items:3306,   rr:62.6, orders:2001,  uq:670,  cp:8.1},
+    {d:"bulk",          items:1133,   rr:58.2, orders:1108,  uq:34,   cp:8.5},
+  ],
+  top25: [
+    {n:"Banana",                    d:"produce",    o:15450,rc:13024,rr:84.3,cp:4.9},
+    {n:"Bag of Organic Bananas",    d:"produce",    o:12409,rc:10297,rr:83.0,cp:5.1},
+    {n:"Organic Strawberries",      d:"produce",    o:8528, rc:6603, rr:77.4,cp:7.2},
+    {n:"Organic Baby Spinach",      d:"produce",    o:7852, rc:6093, rr:77.6,cp:7.4},
+    {n:"Organic Hass Avocado",      d:"produce",    o:6857, rc:5435, rr:79.3,cp:6.8},
+    {n:"Organic Avocado",           d:"produce",    o:5646, rc:4349, rr:77.0,cp:6.3},
+    {n:"Large Lemon",               d:"produce",    o:4928, rc:3456, rr:70.1,cp:8.0},
+    {n:"Strawberries",              d:"produce",    o:4587, rc:3204, rr:69.8,cp:7.2},
+    {n:"Limes",                     d:"produce",    o:4526, rc:3086, rr:68.2,cp:8.5},
+    {n:"Organic Raspberries",       d:"produce",    o:4420, rc:3361, rr:76.0,cp:7.2},
+    {n:"Organic Whole Milk",        d:"dairy eggs", o:4362, rc:3615, rr:82.9,cp:5.4},
+    {n:"Organic Yellow Onion",      d:"produce",    o:3607, rc:2485, rr:68.9,cp:8.5},
+    {n:"Organic Garlic",            d:"produce",    o:3547, rc:2402, rr:67.7,cp:8.9},
+    {n:"Organic Zucchini",          d:"produce",    o:3424, rc:2359, rr:68.9,cp:9.1},
+    {n:"Organic Blueberries",       d:"produce",    o:3256, rc:2041, rr:62.7,cp:8.1},
+    {n:"Cucumber Kirby",            d:"produce",    o:3111, rc:2135, rr:68.6,cp:7.7},
+    {n:"Organic Fuji Apple",        d:"produce",    o:2886, rc:2022, rr:70.1,cp:7.1},
+    {n:"Organic Lemon",             d:"produce",    o:2863, rc:2003, rr:70.0,cp:7.9},
+    {n:"Apple Honeycrisp Organic",  d:"produce",    o:2769, rc:2057, rr:74.3,cp:7.7},
+    {n:"Organic Half & Half",       d:"dairy eggs", o:2598, rc:2022, rr:77.8,cp:6.0},
+    {n:"Organic Grape Tomatoes",    d:"produce",    o:2688, rc:1752, rr:65.2,cp:9.4},
+    {n:"Honeycrisp Apple",          d:"produce",    o:2623, rc:1857, rr:70.8,cp:7.3},
+    {n:"Organic Cucumber",          d:"produce",    o:2556, rc:1797, rr:70.3,cp:8.7},
+    {n:"Organic Baby Carrots",      d:"produce",    o:2484, rc:1562, rr:62.9,cp:8.9},
+    {n:"Sparkling Water Grapefruit",d:"beverages",  o:2433, rc:1847, rr:75.9,cp:6.4},
+  ],
+  deptProds: {
+    "produce":      [{n:"Banana",o:15450,rr:84.3,cp:4.9},{n:"Bag of Organic Bananas",o:12409,rr:83.0,cp:5.1},{n:"Organic Strawberries",o:8528,rr:77.4,cp:7.2},{n:"Organic Baby Spinach",o:7852,rr:77.6,cp:7.4},{n:"Organic Hass Avocado",o:6857,rr:79.3,cp:6.8}],
+    "dairy eggs":   [{n:"Organic Whole Milk",o:4362,rr:82.9,cp:5.4},{n:"Organic Half & Half",o:2598,rr:77.8,cp:6.0},{n:"Half & Half",o:2218,rr:76.3,cp:6.7},{n:"Organic Whole String Cheese",o:1931,rr:76.0,cp:8.0},{n:"Organic Unsweetened Almond Milk",o:1764,rr:76.1,cp:6.5}],
+    "beverages":    [{n:"Spring Water",o:1777,rr:81.3,cp:4.5},{n:"Sparkling Water Grapefruit",o:2433,rr:75.9,cp:6.4},{n:"100% Raw Coconut Water",o:1229,rr:78.4,cp:6.2},{n:"Lime Sparkling Water",o:1473,rr:73.8,cp:6.8},{n:"Sparkling Natural Mineral Water",o:1401,rr:71.6,cp:6.3}],
+    "snacks":       [{n:"Original Veggie Straws",o:543,rr:67.2,cp:10.2},{n:"Lightly Salted Baked Snap Pea Crisps",o:773,rr:61.8,cp:9.6},{n:"Pretzel Crisps Original",o:496,rr:62.1,cp:10.3},{n:"Sea Salt Pita Chips",o:568,rr:60.4,cp:9.4},{n:"Sea Salt & Vinegar Potato Chips",o:458,rr:59.8,cp:9.8}],
+    "frozen":       [{n:"Organic Broccoli Florets",o:1098,rr:63.8,cp:8.6},{n:"Organic Whole Strawberries",o:1051,rr:63.5,cp:8.9},{n:"Frozen Organic Wild Blueberries",o:970,rr:61.6,cp:8.6},{n:"Blueberries",o:1875,rr:57.5,cp:8.5},{n:"Pineapple Chunks",o:751,rr:56.5,cp:8.8}],
+    "pantry":       [{n:"Creamy Almond Butter",o:698,rr:58.3,cp:7.3},{n:"Creamy Peanut Butter",o:656,rr:52.1,cp:8.7},{n:"Organic Creamy Peanut Butter",o:560,rr:52.3,cp:10.0},{n:"Extra Virgin Olive Oil",o:1607,rr:47.0,cp:9.2},{n:"Organic Ketchup",o:517,rr:37.3,cp:10.0}],
+    "bakery":       [{n:"100% Whole Wheat Bread",o:1959,rr:74.9,cp:7.0},{n:"Organic Bread with 21 Whole Grains",o:766,rr:69.5,cp:7.9},{n:"Sourdough Bread",o:528,rr:68.6,cp:8.0},{n:"Original Nooks & Crannies English Muffins",o:481,rr:67.2,cp:7.9},{n:"Ezekiel 4:9 Sprouted Whole Grain Bread",o:583,rr:64.0,cp:7.7}],
+    "deli":         [{n:"Original Hummus",o:2298,rr:73.1,cp:8.3},{n:"Organic Roasted Turkey Breast",o:920,rr:68.5,cp:8.8},{n:"Uncured Genoa Salami",o:1356,rr:65.6,cp:8.8},{n:"Oven Roasted Turkey Breast",o:591,rr:65.5,cp:8.8},{n:"Organic Extra Firm Tofu",o:978,rr:63.2,cp:9.0}],
+    "canned goods": [{n:"No Salt Added Black Beans",o:917,rr:60.7,cp:9.7},{n:"Organic Black Beans",o:1245,rr:58.6,cp:10.4},{n:"Organic Garbanzo Beans",o:984,rr:57.0,cp:9.8},{n:"Organic Diced Tomatoes",o:747,rr:51.1,cp:9.5},{n:"Organic Tomato Paste",o:582,rr:42.6,cp:9.6}],
+    "dry goods pasta":[{n:"Marinara Sauce",o:655,rr:61.8,cp:9.4},{n:"Spaghetti",o:514,rr:51.6,cp:10.2},{n:"Organic Tomato Basil Pasta Sauce",o:513,rr:51.5,cp:10.5},{n:"Basil Pesto",o:521,rr:37.6,cp:11.0},{n:"Tomato Paste",o:386,rr:36.5,cp:11.1}],
+    "meat seafood": [{n:"Organic Ground Beef",o:892,rr:62.1,cp:7.8},{n:"Organic Chicken Breast",o:1120,rr:60.3,cp:7.2},{n:"Salmon Fillet",o:543,rr:58.7,cp:8.1},{n:"Organic Whole Chicken",o:421,rr:55.9,cp:8.4},{n:"Shrimp Tail Off",o:389,rr:54.2,cp:9.0}],
+    "breakfast":    [{n:"Bob's Red Mill Old Fashioned Oats",o:687,rr:72.3,cp:8.2},{n:"Organic Cage Free Brown Eggs",o:1243,rr:71.8,cp:6.3},{n:"Maple Syrup",o:512,rr:65.4,cp:9.1},{n:"Organic Granola",o:489,rr:61.2,cp:9.4},{n:"Plain Greek Yogurt",o:921,rr:60.8,cp:7.9}],
+    "household":    [{n:"Dish Soap",o:643,rr:58.1,cp:7.3},{n:"Paper Towels",o:891,rr:55.2,cp:6.8},{n:"Toilet Paper",o:743,rr:54.9,cp:7.1},{n:"Laundry Detergent",o:512,rr:52.3,cp:7.8},{n:"All Purpose Cleaner",o:423,rr:48.7,cp:8.2}],
+    "babies":       [{n:"Organic Baby Food Puree",o:421,rr:72.4,cp:10.2},{n:"Baby Wipes",o:512,rr:68.9,cp:9.8},{n:"Diapers",o:389,rr:65.3,cp:11.2},{n:"Organic Infant Formula",o:298,rr:62.7,cp:10.8},{n:"Baby Shampoo",o:187,rr:58.4,cp:10.5}],
+  },
+  dow: [
+    {day:"Sat",items:61183,rr:58.7},{day:"Sun",items:55447,rr:60.6},
+    {day:"Mon",items:41711,rr:59.0},{day:"Tue",items:38540,rr:58.6},
+    {day:"Wed",items:38179,rr:59.4},{day:"Thu",items:41070,rr:60.2},
+    {day:"Fri",items:44411,rr:57.4}
+  ],
+  hours: [
+    {h:0,i:1922,rr:53.0},{h:1,i:1105,rr:63.7},{h:2,i:499,rr:55.7},{h:3,i:540,rr:53.5},
+    {h:4,i:587,rr:61.7},{h:5,i:918,rr:64.9},{h:6,i:3016,rr:60.0},{h:7,i:8334,rr:63.2},
+    {h:8,i:17487,rr:63.6},{h:9,i:24355,rr:63.3},{h:10,i:26698,rr:60.6},{h:11,i:26469,rr:57.9},
+    {h:12,i:26280,rr:58.4},{h:13,i:26499,rr:59.2},{h:14,i:27534,rr:58.2},{h:15,i:25789,rr:58.1},
+    {h:16,i:25264,rr:59.2},{h:17,i:21558,rr:58.1},{h:18,i:16353,rr:56.3},{h:19,i:12091,rr:57.3},
+    {h:20,i:9830,rr:55.5},{h:21,i:7252,rr:56.8},{h:22,i:6463,rr:59.0},{h:23,i:3698,rr:58.7}
+  ],
+  dspo: [
+    {d:0,c:4541},{d:1,c:8762},{d:2,c:14861},{d:3,c:19022},{d:4,c:20590},{d:5,c:20468},
+    {d:6,c:24142},{d:7,c:33837},{d:8,c:19016},{d:9,c:12708},{d:10,c:10106},{d:11,c:8254},
+    {d:12,c:7519},{d:13,c:8393},{d:14,c:10485},{d:15,c:7281},{d:16,c:4442},{d:17,c:4137},
+    {d:18,c:3534},{d:19,c:3913},{d:20,c:3698},{d:21,c:4124},{d:22,c:2834},{d:23,c:2064},
+    {d:24,c:1806},{d:25,c:1826},{d:26,c:1731},{d:27,c:1828},{d:28,c:2621},{d:29,c:2197},
+    {d:30,c:28926}
+  ],
+  hmData: {
+    "produce":       {Sat:64.3,Sun:65.5,Mon:65.2,Tue:65.8,Wed:65.6,Thu:66.8,Fri:64.2},
+    "dairy eggs":    {Sat:65.4,Sun:68.3,Mon:66.6,Tue:67.0,Wed:67.3,Thu:68.6,Fri:64.2},
+    "beverages":     {Sat:64.6,Sun:69.0,Mon:64.3,Tue:64.1,Wed:66.0,Thu:64.4,Fri:63.4},
+    "bakery":        {Sat:63.2,Sun:65.6,Mon:63.6,Tue:63.2,Wed:62.4,Thu:64.0,Fri:62.2},
+    "deli":          {Sat:61.7,Sun:61.6,Mon:62.1,Tue:56.4,Wed:61.2,Thu:61.2,Fri:57.5},
+    "snacks":        {Sat:57.3,Sun:60.1,Mon:58.1,Tue:56.2,Wed:58.1,Thu:58.9,Fri:55.4},
+    "frozen":        {Sat:54.9,Sun:53.7,Mon:53.6,Tue:51.0,Wed:55.1,Thu:54.6,Fri:54.5},
+    "canned goods":  {Sat:44.0,Sun:48.6,Mon:43.5,Tue:48.2,Wed:48.6,Thu:48.1,Fri:45.4},
+    "dry goods pasta":{Sat:46.8,Sun:47.6,Mon:48.1,Tue:45.4,Wed:46.6,Thu:46.4,Fri:44.7},
+    "pantry":        {Sat:35.0,Sun:36.7,Mon:35.1,Tue:36.2,Wed:35.8,Thu:36.8,Fri:33.6},
+  }
+};
+
+/* ══════════ STATE ══════════ */
+let selectedDepts = new Set();
+
+/* ══════════ CHART DEFAULTS ══════════ */
+Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#7A9283';
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.backgroundColor = '#0A3018';
+Chart.defaults.plugins.tooltip.titleFont = {weight:'700', size:13};
+Chart.defaults.plugins.tooltip.bodyFont = {size:12};
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.titleColor = '#fff';
+Chart.defaults.plugins.tooltip.bodyColor = 'rgba(255,255,255,0.8)';
+Chart.defaults.scale.grid = {color:'rgba(0,0,0,0.04)'};
+Chart.defaults.scale.border = {display:false};
+
+const G = '#145528', GL = 'rgba(20,85,40,0.12)', G2 = '#1C7A38', G3 = '#25A04A';
+const O = '#F28B30', OL = 'rgba(242,139,48,0.12)';
+function fmt(n){ return n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(0)+'k' : n; }
+function fmtFull(n){ return n.toLocaleString(); }
+
+/* ══════════ KPI COUNTER ANIMATION ══════════ */
+function animateCounter(el, target, suffix='', decimals=0, duration=1200){
+  const start = performance.now();
+  function step(now){
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const val = target * ease;
+    el.textContent = decimals > 0 ? val.toFixed(decimals) + suffix : Math.round(val).toLocaleString() + suffix;
+    if(p < 1) requestAnimationFrame(step);
+    else el.textContent = decimals > 0 ? target.toFixed(decimals) + suffix : target.toLocaleString() + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
+/* ══════════ CHARTS (instances) ══════════ */
+let charts = {};
+
+function makeVolume(){
+  const sortedAll = [...D.depts].sort((a,b)=>b.items - a.items);
+  const active = selectedDepts.size === 0;
+  const labels = sortedAll.map(d => cap(d.d));
+  const data   = sortedAll.map(d => d.items);
+  const colors = sortedAll.map(d => {
+    if(active) return G2;
+    return selectedDepts.has(d.d) ? O : 'rgba(20,122,56,0.18)';
+  });
+  if(charts.vol){
+    charts.vol.data.datasets[0].backgroundColor = colors;
+    charts.vol.update('active');
+    return;
+  }
+  charts.vol = new Chart(document.getElementById('chartVolume'), {
+    type:'bar',
+    data:{ labels, datasets:[{data, backgroundColor:colors, borderRadius:5, borderSkipped:false, maxBarThickness:32}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ticks:{callback:v=>fmt(v)}}, x:{ticks:{font:{size:10}}} },
+      plugins:{tooltip:{callbacks:{label:ctx=>fmtFull(ctx.raw)+' items'}}}
+    }
+  });
+}
+
+function makeReorder(){
+  const sorted = [...D.depts].sort((a,b)=>b.rr - a.rr);
+  const active = selectedDepts.size === 0;
+  const bgColors = sorted.map(d=>{
+    if(active) return d.rr >= 60 ? G : d.rr >= 50 ? G3 : d.rr >= 40 ? O : '#E07212';
+    return selectedDepts.has(d.d) ? O : 'rgba(20,85,40,0.15)';
+  });
+  if(charts.rr){
+    charts.rr.data.datasets[0].backgroundColor = bgColors;
+    charts.rr.update('active');
+    return;
+  }
+  charts.rr = new Chart(document.getElementById('chartReorder'),{
+    type:'bar',
+    data:{
+      labels: sorted.map(d=>cap(d.d)),
+      datasets:[{data:sorted.map(d=>d.rr), backgroundColor:bgColors, borderRadius:4, borderSkipped:false, maxBarThickness:18}]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      scales:{ x:{min:0,max:80,ticks:{callback:v=>v+'%'}}, y:{ticks:{font:{size:10.5}}} },
+      plugins:{tooltip:{callbacks:{label:ctx=>ctx.raw+'% reorder rate'}}}
+    }
+  });
+}
+
+function makeDOW(){
+  if(charts.dow) return;
+  charts.dow = new Chart(document.getElementById('chartDOW'),{
+    type:'bar',
+    data:{
+      labels:D.dow.map(d=>d.day),
+      datasets:[
+        {label:'Items',data:D.dow.map(d=>d.items), backgroundColor:G, borderRadius:5, borderSkipped:false, yAxisID:'y', maxBarThickness:38},
+        {label:'Reorder%',data:D.dow.map(d=>d.rr), type:'line', borderColor:O, backgroundColor:O,
+         pointRadius:5, pointBackgroundColor:O, borderWidth:2.5, yAxisID:'y1', tension:0.3}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, position:'top', labels:{boxWidth:10, padding:14, font:{size:11}}}},
+      scales:{
+        y:{position:'left', ticks:{callback:v=>fmt(v)}},
+        y1:{position:'right', min:55, max:63, grid:{display:false}, ticks:{callback:v=>v+'%'}},
+      }
+    }
+  });
+}
+
+function makeHour(){
+  if(charts.hr) return;
+  charts.hr = new Chart(document.getElementById('chartHour'),{
+    type:'bar',
+    data:{
+      labels: D.hours.map(h=>h.h%6===0?h.h+':00':''),
+      datasets:[
+        {data:D.hours.map(h=>h.i), backgroundColor:D.hours.map(h=>h.h>=8&&h.h<=16?G:GL),
+         borderRadius:3, borderSkipped:false, maxBarThickness:24, yAxisID:'y'},
+        {data:D.hours.map(h=>h.rr), type:'line', borderColor:O, backgroundColor:'transparent',
+         pointRadius:2, borderWidth:2, yAxisID:'y1', tension:0.4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{position:'left', ticks:{callback:v=>fmt(v)}},
+        y1:{position:'right', min:50, max:68, grid:{display:false}, ticks:{callback:v=>v+'%'}},
+        x:{ticks:{font:{size:10}}}
+      },
+      plugins:{tooltip:{callbacks:{title:ctx=>'Hour '+D.hours[ctx[0].dataIndex].h+':00', label:ctx=>ctx.datasetIndex===0?fmtFull(ctx.raw)+' items':ctx.raw+'% reorder'}}}
+    }
+  });
+}
+
+function makeCycle(){
+  if(charts.cy) return;
+  charts.cy = new Chart(document.getElementById('chartCycle'),{
+    type:'line',
+    data:{
+      labels: D.dspo.map(d=>d.d+'d'),
+      datasets:[{
+        data:D.dspo.map(d=>d.c),
+        borderColor:G, backgroundColor:GL, fill:true,
+        pointRadius:D.dspo.map(d=>[7,14,30].includes(d.d)?7:2),
+        pointBackgroundColor:D.dspo.map(d=>[7,14,30].includes(d.d)?O:G),
+        pointBorderColor:D.dspo.map(d=>[7,14,30].includes(d.d)?'#fff':G),
+        pointBorderWidth:D.dspo.map(d=>[7,14,30].includes(d.d)?2:0),
+        borderWidth:2.5, tension:0.2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ticks:{callback:v=>fmt(v)}}, x:{ticks:{font:{size:10}}} },
+      plugins:{tooltip:{callbacks:{label:ctx=>fmtFull(ctx.raw)+' orders'}}}
+    }
+  });
+}
+
+/* ══════════ TOP LIST ══════════ */
+const EMOJIS = ['🍌','🍌','🍓','🥬','🥑','🥑','🍋','🍓','🍋','🫐','🥛','🧅','🧄','🥒','🫐','🥒','🍎','🍋','🍎','🥛','🍅','🍎','🥒','🥕','💧'];
+function renderTopList(dept=null){
+  const list = document.getElementById('topList');
+  let items;
+  if(!dept){
+    items = D.top25.slice(0,8);
+    document.getElementById('top-sub').textContent = 'Highest repeat-purchase rate overall';
+    document.getElementById('top-tag').textContent = 'All Depts';
+  } else {
+    const prods = D.deptProds[dept] || D.top25.filter(p=>p.d===dept).slice(0,5);
+    items = prods;
+    document.getElementById('top-sub').textContent = 'Top products in '+cap(dept);
+    document.getElementById('top-tag').textContent = cap(dept);
+  }
+  list.innerHTML = items.map((p,i)=>{
+    const emoji = EMOJIS[D.top25.indexOf(p)] || '🛒';
+    const hot = p.rr >= 80;
+    return `<li class="top-item">
+      <div class="top-num${hot?' hi':''}">${i+1}</div>
+      <div class="top-info">
+        <div class="top-name">${p.n}</div>
+        <div class="top-meta">${fmtFull(p.o||p.total_orders||0)} orders · cart #${p.cp||p.avg_cart_position||'—'}</div>
+      </div>
+      <div class="top-rate">${p.rr}%</div>
+    </li>`;
+  }).join('');
+}
+
+/* ══════════ PRODUCT TABLE ══════════ */
+function renderProdTable(dept='produce'){
+  const prods = D.deptProds[dept] || [];
+  const body = document.getElementById('prodTableBody');
+  const maxO = Math.max(...prods.map(p=>p.o));
+  body.innerHTML = prods.map((p,i)=>{
+    const barColor = p.rr>=70?G:p.rr>=55?G3:O;
+    const pct = (p.o/maxO*100).toFixed(0);
+    return `<tr>
+      <td><span class="rank" style="background:${i<3?G:G3};color:#fff">${i+1}</span><span style="font-weight:600">${p.n}</span></td>
+      <td style="color:var(--text-secondary);font-weight:600">${fmt(p.o)}</td>
+      <td><div class="rbar">
+        <div class="rbar-track"><div class="rbar-fill" style="width:${p.rr}%;background:${barColor}"></div></div>
+        <span class="rbar-val" style="color:${barColor}">${p.rr}%</span>
+      </div></td>
+      <td style="text-align:center;color:var(--text-muted);font-weight:600">${p.cp}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('prod-table-tag').textContent = cap(dept);
+  document.getElementById('prod-table-title').textContent = 'Top Products — '+cap(dept);
+  document.getElementById('prod-table-sub').textContent = 'Top 5 by order volume with reorder rate';
+}
+
+/* ══════════ HEATMAP ══════════ */
+function buildHeatmap(){
+  const days = ['Sat','Sun','Mon','Tue','Wed','Thu','Fri'];
+  const depts = Object.keys(D.hmData);
+  const allVals = depts.flatMap(dd=>days.map(day=>D.hmData[dd][day]));
+  const mn = Math.min(...allVals), mx = Math.max(...allVals);
+  function hc(v){
+    const t = (v-mn)/(mx-mn);
+    if(t<0.25) return {bg:'#FCDFC4',col:'#7A3A0A'};
+    if(t<0.5)  return {bg:'#D0EDD9',col:'#1A4A2A'};
+    if(t<0.75) return {bg:'#A8DEBA',col:'#0D3A1E'};
+    return {bg:'#145528',col:'#FFFFFF'};
+  }
+  const tbl = document.getElementById('heatmap');
+  let html = `<thead><tr><th></th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
+  depts.forEach(dd=>{
+    html += `<tr><td>${cap(dd)}</td>`;
+    days.forEach(day=>{
+      const v = D.hmData[dd][day];
+      const c = hc(v);
+      html += `<td style="background:${c.bg};color:${c.col}" title="${cap(dd)} on ${day}: ${v}%">${v}%</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+/* ══════════ FILTER PILLS ══════════ */
+function buildPills(){
+  const container = document.getElementById('filterPills');
+  // All pill
+  const allBtn = document.createElement('button');
+  allBtn.className = 'pill all active';
+  allBtn.textContent = '✦ All';
+  allBtn.onclick = resetFilter;
+  container.appendChild(allBtn);
+
+  D.depts.slice(0,13).forEach(dep=>{
+    const btn = document.createElement('button');
+    btn.className = 'pill';
+    btn.textContent = cap(dep.d);
+    btn.dataset.dept = dep.d;
+    btn.onclick = ()=>toggleDept(dep.d, btn);
+    container.appendChild(btn);
+  });
+}
+
+function toggleDept(dept, btn){
+  const allBtn = document.querySelector('.pill.all');
+  if(selectedDepts.has(dept)){
+    selectedDepts.delete(dept);
+    btn.classList.remove('active');
+  } else {
+    selectedDepts.add(dept);
+    btn.classList.add('active');
+    allBtn.classList.remove('active');
+  }
+  if(selectedDepts.size===0) allBtn.classList.add('active');
+  updateAll();
+}
+
+function resetFilter(){
+  selectedDepts.clear();
+  document.querySelectorAll('.pill').forEach(p=>{
+    p.classList.remove('active');
+    if(p.classList.contains('all')) p.classList.add('active');
+  });
+  updateAll();
+}
+
+function updateAll(){
+  // status
+  const stat = document.getElementById('filter-status');
+  stat.textContent = selectedDepts.size > 0 ? `(${selectedDepts.size} selected)` : '';
+  // vol tag
+  document.getElementById('vol-tag').textContent = selectedDepts.size>0
+    ? [...selectedDepts].map(cap).join(', ')
+    : 'All Departments';
+
+  makeVolume();
+  makeReorder();
+
+  const dept = selectedDepts.size===1 ? [...selectedDepts][0] : (selectedDepts.size>1?[...selectedDepts][0]:null);
+  renderTopList(dept);
+  renderProdTable(dept||'produce');
+}
+
+/* ══════════ HELPERS ══════════ */
+function cap(s){ return s.replace(/\b\w/g,c=>c.toUpperCase()); }
+
+/* ══════════ INIT ══════════ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  // KPI counters
+  animateCounter(document.getElementById('kv-orders'), 1048575, '', 0, 1400);
+  animateCounter(document.getElementById('kv-products'), 35449, '', 0, 1100);
+  setTimeout(()=>animateCounter(document.getElementById('kv-reorder'), 59.0, '%', 1, 900), 200);
+  setTimeout(()=>animateCounter(document.getElementById('kv-depts'), 21, '', 0, 700), 300);
+
+  buildPills();
+  makeVolume();
+  makeReorder();
+  makeDOW();
+  makeHour();
+  makeCycle();
+  renderTopList(null);
+  renderProdTable('produce');
+  buildHeatmap();
+});
+</script>
+</body>
+</html>

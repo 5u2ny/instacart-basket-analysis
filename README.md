@@ -2,9 +2,9 @@
 
 **Which products and departments show strong, repeatable demand patterns that should guide smarter restocking?**
 
-This project analyzes 3.4 million grocery orders from Instacart to uncover demand patterns that inform smarter inventory restocking decisions. The analysis spans SQL querying, data transformation, and interactive Tableau visualization.
+This project analyzes 3.4 million grocery orders from Instacart to uncover demand patterns that inform smarter inventory restocking decisions. The analysis spans SQL querying, data transformation, and interactive web visualization.
 
-> **Live Dashboard:** [View on Tableau Public](#) *(link coming soon)*
+> **Live Dashboard:** [View Interactive Dashboard](https://YOUR_USERNAME.github.io/instacart-basket-analysis/) — *replace YOUR_USERNAME with your GitHub username after deploying*
 
 ---
 
@@ -41,6 +41,7 @@ Grocery retailers lose revenue from two failure modes: stockouts on high-demand 
 | Database | MySQL | Data storage and querying |
 | Analysis | SQL | 8 analytical queries with JOINs, subqueries, CASE, GROUP BY, HAVING |
 | Visualization | Tableau Desktop | Interactive 5-chart dashboard |
+| Web Dashboard | HTML + Chart.js | Live hosted dashboard (GitHub Pages) |
 | Data | Instacart Open Dataset | 3.4M orders across 50K products |
 
 ---
@@ -49,6 +50,7 @@ Grocery retailers lose revenue from two failure modes: stockouts on high-demand 
 
 ```
 instacart-basket-analysis/
+├── index.html                           # Live web dashboard (GitHub Pages)
 ├── README.md
 ├── sql/
 │   └── instacart_analysis.sql          # Full SQL script (setup + 8 queries)
@@ -125,7 +127,7 @@ The Tableau dashboard contains 5 interconnected visualizations:
 ## How to Use This Project
 
 ### Option 1: View the Live Dashboard
-Visit the [Tableau Public link](#) to interact with the dashboard directly in your browser.
+Visit the [live dashboard](https://YOUR_USERNAME.github.io/instacart-basket-analysis/) to interact with it directly in your browser — no installs required.
 
 ### Option 2: Run the SQL Analysis
 1. Install MySQL and create the `instacart` database
