@@ -4,7 +4,7 @@
 
 This project analyzes 3.4 million grocery orders from Instacart to uncover demand patterns that inform smarter inventory restocking decisions. The analysis spans SQL querying, data transformation, and interactive web visualization.
 
-> **Live Dashboard:** [View Interactive Dashboard](https://YOUR_USERNAME.github.io/instacart-basket-analysis/) — *replace YOUR_USERNAME with your GitHub username after deploying*
+> **Live Dashboard:** [View Interactive Dashboard](https://5u2ny.github.io/instacart-basket-analysis/) — *replace 5u2ny with your GitHub username after deploying*
 
 ---
 
@@ -127,7 +127,7 @@ The Tableau dashboard contains 5 interconnected visualizations:
 ## How to Use This Project
 
 ### Option 1: View the Live Dashboard
-Visit the [live dashboard](https://YOUR_USERNAME.github.io/instacart-basket-analysis/) to interact with it directly in your browser — no installs required.
+Visit the [live dashboard](https://5u2ny.github.io/instacart-basket-analysis/) to interact with it directly in your browser — no installs required.
 
 ### Option 2: Run the SQL Analysis
 1. Install MySQL and create the `instacart` database
