@@ -382,15 +382,16 @@ body {
     <div class="card">
       <div class="card-head">
         <div>
-          <div class="card-title">Hourly Order Pattern</div>
-          <div class="card-sub">Volume peaks 9 AM–3 PM</div>
+          <div class="card-title">Basket Size Analysis</div>
+          <div class="card-sub">Order count &amp; reorder rate by basket size — Q8</div>
         </div>
+        <span class="card-tag orange">GROUP BY + HAVING</span>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartHour"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartBasket"></canvas></div>
         <div class="insight green">
           <span class="insight-icon">💡</span>
-          <span class="insight-text"><strong>Early birds are loyalists:</strong> Orders at <strong>5–9 AM</strong> have the highest reorder rates (63–65%).</span>
+          <span class="insight-text"><strong>Jumbo baskets (31+ items)</strong> average 37 items and hit <strong>61.2% reorder</strong> — larger-cart shoppers are the most loyal and worth priority restocking attention.</span>
         </div>
       </div>
     </div>
@@ -554,6 +555,13 @@ const D = {
     {d:24,c:1806},{d:25,c:1826},{d:26,c:1731},{d:27,c:1828},{d:28,c:2621},{d:29,c:2197},
     {d:30,c:28926}
   ],
+  baskets: [
+    {cat:"Small (1–5)",   orders:32388, avg:3.2,  rr:62.2, pct:31.1},
+    {cat:"Medium (6–10)", orders:32401, avg:7.8,  rr:58.5, pct:31.1},
+    {cat:"Large (11–20)", orders:29519, avg:14.5, rr:58.1, pct:28.4},
+    {cat:"XL (21–30)",    orders:7668,  avg:24.4, rr:59.3, pct:7.4},
+    {cat:"Jumbo (31+)",   orders:2066,  avg:37.1, rr:61.2, pct:2.0},
+  ],
   hmData: {
     "produce":       {Sat:64.3,Sun:65.5,Mon:65.2,Tue:65.8,Wed:65.6,Thu:66.8,Fri:64.2},
     "dairy eggs":    {Sat:65.4,Sun:68.3,Mon:66.6,Tue:67.0,Wed:67.3,Thu:68.6,Fri:64.2},
@@ -664,28 +672,59 @@ function makeDOW(){
   });
 }
 
-function makeHour(){
-  if(charts.hr) return;
-  charts.hr = new Chart(document.getElementById('chartHour'),{
+function makeBasket(){
+  if(charts.bk) return;
+  const barColors = D.baskets.map(b=> b.cat.startsWith('Jumbo') ? G : b.rr >= 60 ? G2 : G3);
+  charts.bk = new Chart(document.getElementById('chartBasket'),{
     type:'bar',
     data:{
-      labels: D.hours.map(h=>h.h%6===0?h.h+':00':''),
+      labels: D.baskets.map(b=>b.cat),
       datasets:[
-        {data:D.hours.map(h=>h.i), backgroundColor:D.hours.map(h=>h.h>=8&&h.h<=16?G:GL),
-         borderRadius:3, maxBarThickness:24, yAxisID:'y'},
-        {data:D.hours.map(h=>h.rr), type:'line', borderColor:O, backgroundColor:'transparent',
-         pointRadius:2, borderWidth:2, yAxisID:'y1', tension:0.4}
+        {
+          label:'Orders',
+          data: D.baskets.map(b=>b.orders),
+          backgroundColor: barColors,
+          borderRadius: 6,
+          maxBarThickness: 48,
+          yAxisID:'y'
+        },
+        {
+          label:'Reorder %',
+          data: D.baskets.map(b=>b.rr),
+          type:'line',
+          borderColor: O,
+          backgroundColor: OL,
+          pointRadius: 6,
+          pointBackgroundColor: O,
+          pointBorderColor:'#fff',
+          pointBorderWidth: 2,
+          borderWidth: 2.5,
+          yAxisID:'y1',
+          tension: 0.35
+        }
       ]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        y:{position:'left', ticks:{callback:v=>fmt(v)}},
-        y1:{position:'right', min:50, max:68, grid:{display:false}, ticks:{callback:v=>v+'%'}},
-        x:{ticks:{font:{size:10}}}
+      plugins:{
+        legend:{
+          display:true, position:'top',
+          labels:{boxWidth:10, padding:14, font:{size:11}}
+        },
+        tooltip:{
+          callbacks:{
+            title: ctx => D.baskets[ctx[0].dataIndex].cat + ' basket',
+            label: ctx => ctx.datasetIndex===0
+              ? fmtFull(ctx.raw)+' orders ('+D.baskets[ctx.dataIndex].pct+'% of total)'
+              : ctx.raw+'% reorder rate · avg '+D.baskets[ctx.dataIndex].avg+' items'
+          }
+        }
       },
-      plugins:{tooltip:{callbacks:{title:ctx=>'Hour '+D.hours[ctx[0].dataIndex].h+':00', label:ctx=>ctx.datasetIndex===0?fmtFull(ctx.raw)+' items':ctx.raw+'% reorder'}}}
+      scales:{
+        y:{ position:'left', ticks:{callback:v=>fmt(v)}, title:{display:true, text:'Orders', font:{size:10}, color:'#7A9283'} },
+        y1:{ position:'right', min:56, max:64, grid:{display:false}, ticks:{callback:v=>v+'%'}, title:{display:true, text:'Reorder %', font:{size:10}, color:'#7A9283'} },
+        x:{ ticks:{font:{size:10.5}} }
+      }
     }
   });
 }
@@ -869,7 +908,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   makeVolume();
   makeReorder();
   makeDOW();
-  makeHour();
+  makeBasket();
   makeCycle();
   renderTopList(null);
   renderProdTable('produce');
