@@ -4,7 +4,11 @@
 
 This project analyzes 3.4 million grocery orders from Instacart to uncover demand patterns that inform smarter inventory restocking decisions. The analysis spans SQL querying, data transformation, and interactive web visualization.
 
-> **Live Dashboard:** [View Interactive Dashboard](https://5u2ny.github.io/instacart-basket-analysis/) — *replace 5u2ny with your GitHub username after deploying*
+> **Live Dashboard:** [View Interactive Dashboard](https://5u2ny.github.io/instacart-basket-analysis/)
+
+## Portfolio Context
+
+This is my clearest analytics portfolio repo. It aligns directly with the ASANIFY analytics work on my resume: SQL/Tableau dashboards, churn-risk visibility, and faster reporting. Here the same analytics muscle turns transactional grocery data into restocking decisions a category manager can act on.
 
 ---
 
